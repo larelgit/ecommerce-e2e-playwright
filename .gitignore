@@ -1,0 +1,12 @@
+# virtualenv
+.venv/
+
+# python
+__pycache__/
+*.py[cod]
+
+# pytest / playwright artifacts
+.pytest_cache/
+test-results/
+report.html
+playwright-report/
