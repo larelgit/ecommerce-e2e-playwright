@@ -1,0 +1,32 @@
+name: e2e-tests
+
+on: [push, workflow_dispatch]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install browser
+        run: playwright install --with-deps chromium
+
+      - name: Run e2e tests
+        run: pytest --html=report.html --self-contained-html --tracing retain-on-failure
+
+      - name: Upload report and failure artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-report
+          path: |
+            report.html
+            test-results/
