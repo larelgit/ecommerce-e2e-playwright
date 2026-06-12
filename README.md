@@ -1,6 +1,6 @@
 # E-commerce E2E Test Suite — Playwright + Python
 
-[![e2e-tests](https://github.com/YOUR_GITHUB_USERNAME/ecommerce-e2e-playwright/actions/workflows/tests.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/ecommerce-e2e-playwright/actions/workflows/tests.yml)
+[![e2e-tests](https://github.com/larelgit/ecommerce-e2e-playwright/actions/workflows/tests.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/ecommerce-e2e-playwright/actions/workflows/tests.yml)
 
 This repo shows how I set up production-grade UI automation for a web shop: **12 end-to-end
 tests** covering registration, login, search, cart and checkout, running headless in CI on
