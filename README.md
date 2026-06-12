@@ -55,6 +55,10 @@ Real-world issues found and handled while building the suite:
 - Third-party ad scripts intermittently overlay call-to-action buttons and intercept
   clicks — the kind of flakiness source you have to engineer around in production suites
   (solved here with network-level request blocking rather than retries or sleeps).
+- The shared demo site sheds load with `503 "queue full"` pages for minutes at a time.
+  Handled on two levels: page navigation retries on 5xx ([pages/base_page.py](pages/base_page.py)),
+  and test-level reruns in CI only — locally failures stay loud. Failure screenshots made
+  the diagnosis trivial: the "failing test" screenshot was just the 503 page.
 - The signup form and the account API use different field names for the same data
   (`first_name` vs `firstname`), which the data factory has to map explicitly.
 

@@ -19,8 +19,12 @@ jobs:
       - name: Install browser
         run: playwright install --with-deps chromium
 
+      # --reruns guards against the demo site's intermittent 503 load-shedding;
+      # genuine regressions still fail consistently and turn the badge red
       - name: Run e2e tests
-        run: pytest --html=report.html --self-contained-html --tracing retain-on-failure
+        run: >
+          pytest --html=report.html --self-contained-html
+          --tracing retain-on-failure --reruns 2 --reruns-delay 30
 
       - name: Upload report and failure artifacts
         uses: actions/upload-artifact@v4

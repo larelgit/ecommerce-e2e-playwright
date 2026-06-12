@@ -6,12 +6,24 @@ class BasePage:
 
     path = "/"
 
+    # The demo site sheds load with 503 "queue full" pages under traffic;
+    # navigation retries keep a busy minute from failing the whole run.
+    RETRY_DELAYS_S = (5, 10, 20)
+
     def __init__(self, page: Page):
         self.page = page
 
     def open(self) -> None:
         # base_url is configured in pytest.ini, so paths stay relative
-        self.page.goto(self.path)
+        response = self.page.goto(self.path)
+        for delay in self.RETRY_DELAYS_S:
+            if response is None or response.status < 500:
+                return
+            self.page.wait_for_timeout(delay * 1000)
+            response = self.page.goto(self.path)
+        assert response is None or response.status < 500, (
+            f"{self.path} kept returning HTTP {response.status} (site under heavy load)"
+        )
 
     @staticmethod
     def parse_price(text: str) -> int:
