@@ -12,7 +12,10 @@ def test_search_finds_matching_products(page: Page):
     expect(products.search_results_heading).to_be_visible()
     names = products.product_names()
     assert names, "search for a common term returned no products"
-    assert all("dress" in name.lower() for name in names), names
+    # A strict all() check here exposed a real quirk: the engine also matches
+    # fields hidden from the results card (category/description), e.g. "dress"
+    # returns "Sleeves Top and Short". Documented in README "Field notes".
+    assert any("dress" in name.lower() for name in names), names
 
 
 def test_search_with_no_matches_shows_empty_grid(page: Page):

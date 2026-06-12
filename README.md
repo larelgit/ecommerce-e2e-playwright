@@ -61,6 +61,12 @@ Real-world issues found and handled while building the suite:
   the diagnosis trivial: the "failing test" screenshot was just the 503 page.
 - The signup form and the account API use different field names for the same data
   (`first_name` vs `firstname`), which the data factory has to map explicitly.
+- **Search relevance finding:** a strict assertion ("every result name contains the query")
+  failed honestly and exposed real behaviour — searching for `dress` also returns
+  *"Sleeves Top and Short - Blue & Pink"*. The engine matches fields that are not shown
+  on the result card (category/description), so users can't tell why an item matched.
+  On a client project this goes straight into the bug tracker as a UX/relevance issue;
+  this site is a training target without a public tracker, so it's documented here.
 
 ## What I'd add next
 
