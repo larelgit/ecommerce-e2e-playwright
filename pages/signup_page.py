@@ -1,6 +1,7 @@
 from playwright.sync_api import Page
 
 from pages.base_page import BasePage
+from utils.data_generator import User
 
 
 class SignupPage(BasePage):
@@ -14,7 +15,7 @@ class SignupPage(BasePage):
         self.account_created_message = page.locator('[data-qa="account-created"]')
         self.account_deleted_message = page.locator('[data-qa="account-deleted"]')
 
-    def fill_account_details(self, user: dict) -> None:
+    def fill_account_details(self, user: User) -> None:
         page = self.page
         page.get_by_role("radio", name="Mr.").check()
         page.locator('[data-qa="password"]').fill(user["password"])

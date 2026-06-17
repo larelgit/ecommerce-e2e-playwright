@@ -1,12 +1,44 @@
 """Test data factories. Every test creates its own user, so tests stay independent."""
 import uuid
+from typing import TypedDict
 
 from faker import Faker
 
 fake = Faker()
 
 
-def generate_user() -> dict:
+class User(TypedDict):
+    """Shape of a generated user. Field names mirror the signup form;
+    the account API renames some of them (see conftest.registered_user)."""
+
+    title: str
+    name: str
+    email: str
+    password: str
+    birth_date: str
+    birth_month: str
+    birth_year: str
+    first_name: str
+    last_name: str
+    company: str
+    address1: str
+    address2: str
+    country: str
+    state: str
+    city: str
+    zipcode: str
+    mobile_number: str
+
+
+class PaymentCard(TypedDict):
+    name_on_card: str
+    card_number: str
+    cvc: str
+    expiry_month: str
+    expiry_year: str
+
+
+def generate_user() -> User:
     first_name = fake.first_name()
     last_name = fake.last_name()
     return {
@@ -31,7 +63,7 @@ def generate_user() -> dict:
     }
 
 
-def generate_payment_card() -> dict:
+def generate_payment_card() -> PaymentCard:
     return {
         "name_on_card": fake.name(),
         "card_number": fake.credit_card_number(),

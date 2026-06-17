@@ -4,13 +4,20 @@ import re
 import pytest
 from playwright.sync_api import Playwright
 
-from utils.data_generator import generate_user
+from utils.data_generator import User, generate_user
 
 # The target site is ad-supported; ad iframes sometimes cover buttons and
 # intercept clicks, so all ad/analytics requests are dropped at network level.
 AD_HOSTS = re.compile(
-    r"(googlesyndication|doubleclick|adservice|google-analytics|googletagmanager)"
+    r"(googlesyndication|doubleclick|adservice|google-analytics|googletagmanager|fundingchoices)"
 )
+
+# pytest-base-url reads `base_url` from pytest.ini, but that value is NOT
+# propagated to xdist workers (-n auto), so navigations there hit "/" with no
+# host. Re-expose it as a fixture sourced from the ini so parallel runs work.
+@pytest.fixture(scope="session")
+def base_url(request) -> str:
+    return request.config.getini("base_url")
 
 
 @pytest.fixture(autouse=True)
@@ -26,7 +33,7 @@ def api(playwright: Playwright, base_url: str):
     client.dispose()
 
 
-def _delete_account(api, user: dict) -> None:
+def _delete_account(api, user: User) -> None:
     # idempotent: a 404 response code for an already-deleted account is fine
     api.delete(
         "/api/deleteAccount",
