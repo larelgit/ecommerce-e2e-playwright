@@ -3,10 +3,9 @@ from playwright.sync_api import Page, expect
 
 from pages.cart_page import CartPage
 from pages.checkout_page import CheckoutPage, PaymentPage
-from pages.login_page import LoginPage
+from pages.flows import register_via_ui
 from pages.product_page import ProductPage
-from pages.signup_page import SignupPage
-from utils.data_generator import generate_payment_card
+from utils.data_generator import User, generate_payment_card
 
 
 def test_checkout_requires_login(page: Page):
@@ -21,16 +20,9 @@ def test_checkout_requires_login(page: Page):
     expect(cart.checkout_login_prompt).to_be_visible()
 
 
-def test_full_purchase_flow(page: Page, new_user: dict):
+def test_full_purchase_flow(page: Page, new_user: User):
     """Registration -> product -> cart -> checkout -> payment -> confirmation."""
-    login = LoginPage(page)
-    login.open()
-    login.start_signup(new_user["name"], new_user["email"])
-    signup = SignupPage(page)
-    signup.fill_account_details(new_user)
-    expect(signup.account_created_message).to_be_visible()
-    signup.continue_after_signup()
-    expect(signup.logged_in_as(new_user["name"])).to_be_visible()
+    signup = register_via_ui(page, new_user)
 
     products = ProductPage(page)
     products.open()
