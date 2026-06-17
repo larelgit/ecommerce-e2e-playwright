@@ -5,6 +5,10 @@ on: [push, workflow_dispatch]
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
     steps:
       - uses: actions/checkout@v4
 
@@ -17,20 +21,25 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Install browser
-        run: playwright install --with-deps chromium
+        run: playwright install --with-deps ${{ matrix.browser }}
 
-      # --reruns guards against the demo site's intermittent 503 load-shedding;
-      # genuine regressions still fail consistently and turn the badge red
+      # -n 4 runs tests in parallel (data isolation in conftest.py supports it).
+      # Capped at 4 rather than `auto`: the demo site sheds load under heavy
+      # concurrency, so more workers means more flaky 503s, not more speed.
+      # --reruns guards against that intermittent load-shedding; genuine
+      # regressions still fail consistently and turn the badge red.
       - name: Run e2e tests
         run: >
-          pytest --html=report.html --self-contained-html
+          pytest --browser ${{ matrix.browser }}
+          -n 4
+          --html=report.html --self-contained-html
           --tracing retain-on-failure --reruns 2 --reruns-delay 30
 
       - name: Upload report and failure artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-report
+          name: test-report-${{ matrix.browser }}
           path: |
             report.html
             test-results/
