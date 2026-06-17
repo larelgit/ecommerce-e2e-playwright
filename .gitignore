@@ -1,12 +1,12 @@
-# virtualenv
-.venv/
-
-# python
+# Python
 __pycache__/
 *.py[cod]
-
-# pytest / playwright artifacts
+.venv/
+venv/
 .pytest_cache/
-test-results/
+
+# Test artifacts
 report.html
+test-results/
 playwright-report/
+trace.zip

@@ -1,6 +1,7 @@
 from playwright.sync_api import Page
 
 from pages.base_page import BasePage
+from utils.data_generator import PaymentCard
 
 
 class CheckoutPage(BasePage):
@@ -33,7 +34,7 @@ class PaymentPage(BasePage):
             "Congratulations! Your order has been confirmed!"
         )
 
-    def pay(self, card: dict) -> None:
+    def pay(self, card: PaymentCard) -> None:
         page = self.page
         page.locator('[data-qa="name-on-card"]').fill(card["name_on_card"])
         page.locator('[data-qa="card-number"]').fill(card["card_number"])
