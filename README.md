@@ -24,7 +24,8 @@ money path a real client pays to keep green.
 
 ## Stack
 
-Playwright (Chromium) · pytest · Page Object Model · Faker · pytest-html · GitHub Actions
+Playwright (Chromium · Firefox · WebKit) · pytest · Page Object Model · Faker ·
+pytest-html · pytest-xdist · GitHub Actions
 
 ## Run it locally
 
@@ -32,6 +33,12 @@ Playwright (Chromium) · pytest · Page Object Model · Faker · pytest-html · 
 pip install -r requirements.txt
 playwright install chromium
 pytest --html=report.html --self-contained-html
+
+# parallel (data isolation supports it)
+pytest -n 4
+
+# a different engine
+pytest --browser firefox
 ```
 
 ## Design decisions
@@ -42,11 +49,17 @@ pytest --html=report.html --self-contained-html
   through the site's [REST API](https://automationexercise.com/api_list) in fixtures
   ([conftest.py](conftest.py)), so tests are independent and order-agnostic.
 - **Resilient selectors** — `get_by_role` / `data-qa` attributes, no brittle XPath.
+  Where the markup fights ARIA (e.g. an `<a class="check_out">` with no `href`, which
+  therefore has no `link` role), a stable CSS class beats matching on display text.
+- **Typed test data** — user/payment factories return `TypedDict`s ([utils/data_generator.py](utils/data_generator.py)),
+  so editors and `pyright` catch a missing or misspelled field before it reaches the form.
 - **No `time.sleep()`** — Playwright auto-waiting and web-first `expect` assertions only.
 - **Ad traffic is blocked at network level** — the target site serves ad iframes that can
   cover buttons and steal clicks; a route filter in `conftest.py` keeps runs deterministic.
+- **Cross-browser in CI** — the GitHub Actions matrix runs the full suite on Chromium,
+  Firefox and WebKit on every push ([.github/workflows/tests.yml](.github/workflows/tests.yml)).
 - **Failure diagnostics** — screenshots on failure locally; in CI also Playwright traces,
-  uploaded with the HTML report as a workflow artifact.
+  uploaded with the HTML report as a per-browser workflow artifact.
 
 ## Field notes from automating this target
 
@@ -70,8 +83,6 @@ Real-world issues found and handled while building the suite:
 
 ## What I'd add next
 
-- Cross-browser matrix in CI (Firefox, WebKit) — one-line change with `--browser`.
-- Parallel execution with `pytest-xdist` (data isolation already supports it).
 - Visual regression checks for key pages.
 - An API test layer reusing the same data factories.
 - Adopt an open-source target (e.g. RealWorld/Conduit) to file real bug reports upstream.
