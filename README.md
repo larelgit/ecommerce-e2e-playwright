@@ -31,7 +31,7 @@ pytest-html · pytest-xdist · GitHub Actions
 
 ```bash
 pip install -r requirements.txt
-playwright install chromium
+playwright install
 pytest --html=report.html --self-contained-html
 
 # parallel (data isolation supports it)
