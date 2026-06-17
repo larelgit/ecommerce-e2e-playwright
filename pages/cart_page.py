@@ -34,4 +34,6 @@ class CartPage(BasePage):
         self.rows.nth(index).locator(".cart_quantity_delete").click()
 
     def proceed_to_checkout(self) -> None:
-        self.page.get_by_text("Proceed To Checkout").click()
+        # The button is an <a class="check_out"> without href, so it has no
+        # ARIA "link" role; target the stable class instead of brittle text.
+        self.page.locator("a.check_out").click()
