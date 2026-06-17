@@ -12,7 +12,7 @@ AD_HOSTS = re.compile(
     r"(googlesyndication|doubleclick|adservice|google-analytics|googletagmanager|fundingchoices)"
 )
 
-# pytest-base-url reads `base_url` from pytest.ini, but that value is NOT
+# pytest-playwright reads `base_url` from pytest.ini, but that value is NOT
 # propagated to xdist workers (-n auto), so navigations there hit "/" with no
 # host. Re-expose it as a fixture sourced from the ini so parallel runs work.
 @pytest.fixture(scope="session")
