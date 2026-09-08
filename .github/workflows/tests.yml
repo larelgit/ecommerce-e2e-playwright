@@ -1,48 +1,117 @@
 name: e2e-tests
 
 on:
-  push:
   pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 5 * * 1-5'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: '3.12'
+  TEST_SUITE: ${{ github.event_name == 'pull_request' && 'smoke' || 'regression' }}
+
 jobs:
-  test:
+  quality:
+    name: Ruff and Pyright
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        browser: [chromium, firefox, webkit]
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-
+          cache-dependency-path: pyproject.toml
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: python -m pip install -e '.[dev]'
+      - name: Lint
+        run: ruff check .
+      - name: Check formatting
+        run: ruff format --check .
+      - name: Check types
+        run: pyright
+      - name: Validate collection and markers
+        run: pytest --collect-only -q
+      - name: Check fixture behavior offline
+        run: pytest tests/unit
 
-      - name: Install browser
-        run: playwright install --with-deps ${{ matrix.browser }}
-
-      # -n 4 runs tests in parallel (data isolation in conftest.py supports it).
-      # Capped at 4 rather than `auto`: the demo site sheds load under heavy
-      # concurrency, so more workers means more flaky 503s, not more speed.
-      # --reruns guards against that intermittent load-shedding; genuine
-      # regressions still fail consistently and turn the badge red.
-      - name: Run e2e tests
-        run: >
-          pytest --browser ${{ matrix.browser }}
-          -n 4
-          --html=report.html --self-contained-html
-          --tracing retain-on-failure --reruns 2 --reruns-delay 30
-
-      - name: Upload report and failure artifacts
-        uses: actions/upload-artifact@v4
+  api:
+    name: API tests
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dependencies (no browser binaries)
+        run: python -m pip install -e .
+      - name: Check target API availability
+        run: python scripts/check_target.py --output reports/preflight-api.json
+      - name: Run API suite once
+        run: >-
+          pytest tests/api -m "$TEST_SUITE"
+          --html=reports/api.html --self-contained-html
+          --junitxml=reports/api.xml
+      - name: Upload API diagnostics
+        uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: test-report-${{ matrix.browser }}
+          name: api-report
+          path: reports/
+          retention-days: 14
+
+  ui:
+    name: UI (${{ matrix.browser }})
+    needs: api
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      # Serialize engines and cap workers: this is a shared public demo site.
+      max-parallel: 1
+      matrix:
+        browser: ${{ fromJSON(github.event_name == 'pull_request' && '["chromium"]' || '["chromium", "firefox", "webkit"]') }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install dependencies
+        run: python -m pip install -e .
+      - name: Install browser and system dependencies
+        run: playwright install --with-deps ${{ matrix.browser }}
+      - name: Check target access from this browser
+        run: >-
+          python scripts/check_target.py --browser ${{ matrix.browser }}
+          --output reports/preflight-${{ matrix.browser }}.json
+      # No blanket reruns: site challenges and real assertion failures stay visible.
+      - name: Run UI suite
+        run: >-
+          pytest tests/ui -m "$TEST_SUITE" --browser ${{ matrix.browser }} -n 2
+          --html=reports/ui-${{ matrix.browser }}.html --self-contained-html
+          --junitxml=reports/ui-${{ matrix.browser }}.xml
+          --tracing retain-on-failure
+      - name: Upload UI report and failure artifacts
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: ui-report-${{ matrix.browser }}
           path: |
-            report.html
+            reports/
             test-results/
+          retention-days: 14

@@ -1,4 +1,8 @@
-from playwright.sync_api import Locator, Page
+import re
+
+from playwright.sync_api import Locator, Page, expect
+
+from utils.target import TargetUnavailableError
 
 
 class BasePage:
@@ -6,24 +10,27 @@ class BasePage:
 
     path = "/"
 
-    # The demo site sheds load with 503 "queue full" pages under traffic;
-    # navigation retries keep a busy minute from failing the whole run.
-    RETRY_DELAYS_S = (5, 10, 20)
-
     def __init__(self, page: Page):
         self.page = page
 
     def open(self) -> None:
-        # base_url is configured in pytest.ini, so paths stay relative
-        response = self.page.goto(self.path)
-        for delay in self.RETRY_DELAYS_S:
-            if response is None or response.status < 500:
-                return
-            self.page.wait_for_timeout(delay * 1000)
-            response = self.page.goto(self.path)
-        assert response is None or response.status < 500, (
-            f"{self.path} kept returning HTTP {response.status} (site under heavy load)"
-        )
+        # Waiting for DOM readiness avoids slow third-party load events.
+        response = self.page.goto(self.path, wait_until="domcontentloaded")
+        if response is None or response.status >= 400:
+            status = response.status if response else "no response"
+            raise TargetUnavailableError(f"GET {self.path}: HTTP {status}")
+        # Access challenges can be HTTP 200. Give a transient interstitial time
+        # to finish, then report the environment problem before locating controls.
+        try:
+            expect(self.page).not_to_have_title(
+                re.compile(r"one moment|just a moment|attention required", re.I),
+                timeout=15_000,
+            )
+        except AssertionError as error:
+            raise TargetUnavailableError(
+                f"GET {self.path}: target access challenge ({self.page.title()!r}). "
+                "Check the runner's access to the demo site."
+            ) from error
 
     @staticmethod
     def parse_price(text: str) -> int:

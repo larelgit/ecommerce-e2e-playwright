@@ -1,11 +1,17 @@
 """Cart behaviour: adding, quantity/total maths, and removal."""
+
+import pytest
 from playwright.sync_api import Page, expect
 
 from pages.cart_page import CartPage
 from pages.product_page import ProductPage
 
+pytestmark = [pytest.mark.ui, pytest.mark.regression]
 
-def test_add_product_to_cart(page: Page):
+
+@pytest.mark.smoke
+@pytest.mark.critical
+def test_add_product_to_cart(page: Page) -> None:
     products = ProductPage(page)
     products.open()
     added_name = products.add_to_cart(0)
@@ -17,7 +23,7 @@ def test_add_product_to_cart(page: Page):
     assert cart.item_quantity(0) == 1
 
 
-def test_cart_total_reflects_quantity(page: Page):
+def test_cart_total_reflects_quantity(page: Page) -> None:
     products = ProductPage(page)
     products.open()
     products.open_details(0)
@@ -33,7 +39,7 @@ def test_cart_total_reflects_quantity(page: Page):
     assert cart.item_total(0) == unit_price * 3
 
 
-def test_remove_product_from_cart(page: Page):
+def test_remove_product_from_cart(page: Page) -> None:
     products = ProductPage(page)
     products.open()
     products.add_to_cart(0)

@@ -1,65 +1,55 @@
-"""Shared fixtures: browser tweaks and test users managed through the site's REST API."""
+"""Shared browser configuration and isolated accounts for UI and API tests."""
+
 import re
+from collections.abc import Iterator
 
 import pytest
-from playwright.sync_api import Playwright
+from playwright.sync_api import APIRequestContext, BrowserContext, Playwright
 
+from utils.api import account_payload, assert_api_response, delete_account
 from utils.data_generator import User, generate_user
 
-# The target site is ad-supported; ad iframes sometimes cover buttons and
-# intercept clicks, so all ad/analytics requests are dropped at network level.
 AD_HOSTS = re.compile(
     r"(googlesyndication|doubleclick|adservice|google-analytics|googletagmanager|fundingchoices)"
 )
 
-# pytest-playwright reads `base_url` from pytest.ini, but that value is NOT
-# propagated to xdist workers (-n auto), so navigations there hit "/" with no
-# host. Re-expose it as a fixture sourced from the ini so parallel runs work.
+
 @pytest.fixture(scope="session")
-def base_url(request) -> str:
-    return request.config.getini("base_url")
+def base_url(request: pytest.FixtureRequest) -> str:
+    """Keep CLI/environment overrides and the ini fallback on xdist workers."""
+    return request.config.getoption("base_url") or request.config.getini("base_url")
 
 
-@pytest.fixture(autouse=True)
-def block_ads(context):
+@pytest.fixture
+def context(context: BrowserContext) -> BrowserContext:
+    """Configure only requested browser contexts; API tests stay browser-free."""
     context.route(AD_HOSTS, lambda route: route.abort())
+    return context
 
 
 @pytest.fixture
-def api(playwright: Playwright, base_url: str):
-    """API client for test-data setup/teardown (https://automationexercise.com/api_list)."""
+def api(playwright: Playwright, base_url: str) -> Iterator[APIRequestContext]:
     client = playwright.request.new_context(base_url=base_url)
-    yield client
-    client.dispose()
+    try:
+        yield client
+    finally:
+        client.dispose()
 
 
-def _delete_account(api, user: User) -> None:
-    # idempotent: a 404 response code for an already-deleted account is fine
-    api.delete(
-        "/api/deleteAccount",
-        form={"email": user["email"], "password": user["password"]},
+@pytest.fixture
+def new_user(api: APIRequestContext) -> Iterator[User]:
+    """Own cleanup before creation, including failed setup and UI registration."""
+    user = generate_user()
+    try:
+        yield user
+    finally:
+        delete_account(api, user)
+
+
+@pytest.fixture
+def registered_user(api: APIRequestContext, new_user: User) -> User:
+    response = api.post(
+        "/api/createAccount", form=account_payload(new_user), max_redirects=0
     )
-
-
-@pytest.fixture
-def new_user(api):
-    """Fresh user data for UI-registration tests; the account is removed afterwards."""
-    user = generate_user()
-    yield user
-    _delete_account(api, user)
-
-
-@pytest.fixture
-def registered_user(api):
-    """An existing account, created through the API so every test owns its data."""
-    user = generate_user()
-    payload = {
-        **user,
-        "firstname": user["first_name"],  # the API uses different field names
-        "lastname": user["last_name"],
-    }
-    response = api.post("/api/createAccount", form=payload)
-    body = response.json()
-    assert body.get("responseCode") == 201, f"user setup failed: {body}"
-    yield user
-    _delete_account(api, user)
+    assert_api_response(response, 201, "User created!")
+    return new_user

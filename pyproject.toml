@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ecommerce-e2e-playwright"
+version = "0.1.0"
+description = "Production-style UI and API tests for Automation Exercise"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "playwright==1.62.0",
+    "pytest==9.1.0",
+    "pytest-playwright==0.8.0",
+    "pytest-html==4.2.0",
+    "pytest-xdist==3.8.0",
+    "faker==40.23.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff==0.16.6", "pyright==1.1.411"]
+
+[tool.setuptools.packages.find]
+include = ["pages*", "utils*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+base_url = "https://automationexercise.com"
+addopts = "--strict-markers --strict-config --screenshot only-on-failure --output test-results -ra"
+markers = [
+    "smoke: quick checks of the main UI and API journeys",
+    "regression: full UI and API coverage, including smoke tests",
+    "api: HTTP tests that do not launch a browser",
+    "ui: browser end-to-end tests",
+    "critical: account, cart, and purchase journeys",
+    "unit: offline checks of test infrastructure",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B"]
+
+[tool.pyright]
+include = ["conftest.py", "pages", "utils", "tests", "scripts"]
+exclude = [".venv", "test-results"]
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+reportMissingTypeStubs = false
