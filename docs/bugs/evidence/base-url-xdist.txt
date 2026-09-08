@@ -1,0 +1,33 @@
+COMMAND: python -m pytest -q
+EXIT: 0
+.                                                                        [100%]
+1 passed in 0.03s
+
+COMMAND: python -m pytest -q -n 2
+EXIT: 1
+bringing up nodes...
+bringing up nodes...
+
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____________________________ test_base_url_from_ini ____________________________
+[gw0] linux -- Python 3.12.3 <project>/.venv/bin/python
+
+base_url = None
+
+    def test_base_url_from_ini(base_url):
+>       assert base_url == "http://example.test"
+E       AssertionError: assert None == 'http://example.test'
+
+test_base_url.py:2: AssertionError
+=========================== short test summary info ============================
+FAILED test_base_url.py::test_base_url_from_ini - AssertionError: assert None...
+1 failed in 0.86s
+
+COMMAND: python -m pytest -q -n 2 --base-url http://example.test
+EXIT: 0
+bringing up nodes...
+bringing up nodes...
+
+.                                                                        [100%]
+1 passed in 0.73s

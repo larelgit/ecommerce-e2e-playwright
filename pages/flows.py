@@ -3,6 +3,7 @@
 Lives outside the page objects because it spans pages (login -> signup),
 and outside conftest because it's a reusable action, not a fixture.
 """
+
 from playwright.sync_api import Page, expect
 
 from pages.login_page import LoginPage

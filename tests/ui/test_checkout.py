@@ -1,4 +1,6 @@
 """Checkout: the guest gate and the full purchase journey (the suite's showcase)."""
+
+import pytest
 from playwright.sync_api import Page, expect
 
 from pages.cart_page import CartPage
@@ -7,8 +9,10 @@ from pages.flows import register_via_ui
 from pages.product_page import ProductPage
 from utils.data_generator import User, generate_payment_card
 
+pytestmark = [pytest.mark.ui, pytest.mark.regression]
 
-def test_checkout_requires_login(page: Page):
+
+def test_checkout_requires_login(page: Page) -> None:
     """Guests can fill a cart, but checkout must ask them to sign in."""
     products = ProductPage(page)
     products.open()
@@ -20,7 +24,8 @@ def test_checkout_requires_login(page: Page):
     expect(cart.checkout_login_prompt).to_be_visible()
 
 
-def test_full_purchase_flow(page: Page, new_user: User):
+@pytest.mark.critical
+def test_full_purchase_flow(page: Page, new_user: User) -> None:
     """Registration -> product -> cart -> checkout -> payment -> confirmation."""
     signup = register_via_ui(page, new_user)
 

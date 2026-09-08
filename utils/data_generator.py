@@ -1,4 +1,5 @@
 """Test data factories. Every test creates its own user, so tests stay independent."""
+
 import uuid
 from typing import TypedDict
 
@@ -9,7 +10,7 @@ fake = Faker()
 
 class User(TypedDict):
     """Shape of a generated user. Field names mirror the signup form;
-    the account API renames some of them (see conftest.registered_user)."""
+    the account API renames some of them (see utils.api.account_payload)."""
 
     title: str
     name: str
